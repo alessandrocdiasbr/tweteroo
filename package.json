@@ -4,8 +4,8 @@
   "description": "\"projeto modulo 2\"",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon src/index.js"
+    "start": "node ./src/app.js",
+    "dev": "nodemon ./src/app.js"
   },
   "keywords": [],
   "author": "Alessandro",
