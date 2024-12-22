@@ -130,6 +130,31 @@ app.delete("/tweets/:id", async (req, res) => {
     }
 });
 
+
+function asyncTask(time, value) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(value);
+    }, time);
+  });
+}
+
+
+const promises = [
+  asyncTask(1000, 'Primeira Promise'),
+  asyncTask(2000, 'Segunda Promise'),
+  asyncTask(1500, 'Terceira Promise')
+];
+
+
+Promise.all(promises)
+  .then(results => {
+    console.log('Todas as Promises foram resolvidas:', results);
+  })
+  .catch(error => {
+    console.error('Erro ao resolver Promises:', error);
+  });
+
 const porta = process.env.PORTA || 5000;
 app.listen(porta, () => {
     console.log(`Servidor rodando na porta ${porta}`);
