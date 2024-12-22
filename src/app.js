@@ -2,27 +2,26 @@ import express, { json } from "express";
 import cors from "cors";
 import { MongoClient, ObjectId } from "mongodb";
 import joi from "joi";
-
 import dotenv from "dotenv";
+
 dotenv.config();
 
-const app = express(); 
+const app = express();
 app.use(cors());
-app.use(json()); 
+app.use(json());
 
 const mongoURL = process.env.BACKEND_URL;
 const mongoClient = new MongoClient(mongoURL);
 let db;
 
 mongoClient.connect()
-.then(() => {
+  .then(() => {
     console.log("Conexão com o banco de dados estabelecida com sucesso!");
-   db = mongoClient.db();
+    db = mongoClient.db();
+  })
+  .catch((err) => console.log(err.message));
 
-})
-.catch((err) => console.log(err.message));
-
-app.post("/sign-up", async (req, res) => { 
+app.post("/sign-up", async (req, res) => {
     const schema = joi.object({
         username: joi.string().required(),
         avatar: joi.string().uri().required(),
@@ -38,7 +37,7 @@ app.post("/sign-up", async (req, res) => {
         const result = await db.collection("users").insertOne(user);
         res.status(201).send({ _id: result.insertedId, ...user });
     } catch (err) {
-        console.error("Erro ao cadastrar usuário:", err); 
+        console.error("Erro ao cadastrar usuário:", err);
         res.status(500).send("Erro ao cadastrar usuário");
     }
 });
@@ -60,12 +59,13 @@ app.post("/tweets", async (req, res) => {
         if (!user) {
             return res.status(401).send("Usuário não autorizado");
         }
-        const result = await db.collection("tweets").insertOne({ username, tweet });        
+        const result = await db.collection("tweets").insertOne({ username, tweet });
+        res.status(201).send({ _id: result.insertedId, username, tweet });
     } catch (err) {
         console.error("Erro ao postar tweet:", err);
         res.status(500).send("Erro ao postar tweet");
     }
-})
+});
 
 app.get("/tweets", async (req, res) => {
     try {
@@ -87,7 +87,48 @@ app.get("/tweets", async (req, res) => {
     }
 });
 
+app.put("/tweets/:id", async (req, res) => {
+    const { id } = req.params;
+    const { tweet } = req.body;
 
+    const schema = joi.object({
+        tweet: joi.string().required(),
+    });
+
+    const { error } = schema.validate({ tweet });
+    if (error) {
+        const messages = error.details.map((err) => err.message);
+        return res.status(422).send(messages);
+    }
+
+    try {
+        const objectId = new ObjectId(id); 
+        const result = await db.collection("tweets").updateOne({ _id: objectId }, { $set: { tweet } });
+        if (result.matchedCount === 0) {
+            return res.status(404).send("Tweet não encontrado");
+        }
+        return res.status(204).send(); 
+    } catch (error) {
+        console.error("Erro ao atualizar tweet:", error);
+        return res.status(500).send("Erro ao atualizar tweet");
+    }
+});
+
+app.delete("/tweets/:id", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const objectId = new ObjectId(id); 
+        const result = await db.collection("tweets").deleteOne({ _id: objectId });
+        if (result.deletedCount === 0) {
+            return res.status(404).send("Tweet não encontrado");
+        }
+        return res.status(204).send();
+    } catch (error) {
+        console.error("Erro ao deletar tweet:", error);
+        return res.status(500).send("Erro ao deletar tweet");
+    }
+});
 
 const porta = process.env.PORTA || 5000;
 app.listen(porta, () => {
