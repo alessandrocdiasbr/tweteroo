@@ -22,7 +22,7 @@ mongoClient.connect()
 })
 .catch((err) => console.log(err.message));
 
-app.post("/users", async (req, res) => {
+app.post("/sign-up", async (req, res) => { 
     const schema = joi.object({
         username: joi.string().required(),
         avatar: joi.string().uri().required(),
@@ -40,6 +40,50 @@ app.post("/users", async (req, res) => {
     } catch (err) {
         console.error("Erro ao cadastrar usuário:", err); 
         res.status(500).send("Erro ao cadastrar usuário");
+    }
+});
+
+app.post("/tweets", async (req, res) => {
+    const schema = joi.object({
+        username: joi.string().required(),
+        tweet: joi.string().required(),
+    });
+    const { error } = schema.validate(req.body);
+    if (error) {
+        return res.status(422).send(error.details[0].message);
+    }
+
+    const { username, tweet } = req.body;
+
+    try {
+        const user = await db.collection("users").findOne({ username });
+        if (!user) {
+            return res.status(401).send("Usuário não autorizado");
+        }
+        const result = await db.collection("tweets").insertOne({ username, tweet });        
+    } catch (err) {
+        console.error("Erro ao postar tweet:", err);
+        res.status(500).send("Erro ao postar tweet");
+    }
+})
+
+app.get("/tweets", async (req, res) => {
+    try {
+        const tweets = await db.collection("tweets").find().toArray();
+        const tweetsWithAvatar = await Promise.all(tweets.map(async (tweet) => {
+            const user = await db.collection("users").findOne({ username: tweet.username });
+            return {
+                _id: tweet._id,
+                username: tweet.username,
+                avatar: user.avatar,
+                tweet: tweet.tweet
+            };
+        }));
+        tweetsWithAvatar.sort((a, b) => b._id.getTimestamp() - a._id.getTimestamp());
+        res.status(200).send(tweetsWithAvatar);
+    } catch (err) {
+        console.error("Erro ao buscar tweets:", err);
+        res.status(500).send("Erro ao buscar tweets");
     }
 });
 
