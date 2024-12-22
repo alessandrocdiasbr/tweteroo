@@ -10,12 +10,22 @@ const app = express();
 app.use(cors());
 app.use(json()); 
 
-const mongoClientUsers = new MongoClient("mongodb://127.0.0.1:27017/users");
-let db
+const mongoURL = process.env.BACKEND_URL;
+const mongoClientUsers = new MongoClient(mongoURL);
+let db;
 
 mongoClientUsers.connect()
-.then(() => db = mongoClientUsers.db())
-.catch((err) => console.log(err));
+.then(() => {
+    console.log("Conexão com o banco de dados estabelecida com sucesso!");
+    db = mongoClientUsers.db();
+
+})
+.catch((err) => console.log(err.message));
+
+
+
+
+
 
 const porta = process.env.PORTA || 5000;
 app.listen(porta, () => {
